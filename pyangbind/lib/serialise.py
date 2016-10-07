@@ -84,7 +84,10 @@ class pybindJSONEncoder(json.JSONEncoder):
       return [self.default(i, mode=mode) for i in obj]
     # Expand dictionaries
     elif isinstance(obj, dict):
-      return {k: self.default(v, mode=mode) for k, v in obj.iteritems()}
+      if mode == 'rest':
+        return OrderedDict([(k, self.default(v, mode=mode)) for k, v in obj.iteritems()])
+      else:
+        return {k: self.default(v, mode=mode) for k, v in obj.iteritems()}
 
     if pybc is not None:
       # Special cases where the wrapper has an underlying class
@@ -144,7 +147,10 @@ class pybindJSONEncoder(json.JSONEncoder):
         nlist.append(self.default(elem, mode=mode))
       return nlist
     elif isinstance(obj, dict):
-      ndict = {}
+      if mode == 'rest':
+        ndict = OrderedDict()
+      else:
+        ndict = {}
       for k, v in obj.iteritems():
         ndict[k] = self.default(v, mode=mode)
       return ndict
@@ -523,3 +529,62 @@ class pybindIETFJSONEncoder(pybindJSONEncoder):
 
   def default(self, obj, mode="ietf"):
     return pybindJSONEncoder().default(obj, mode="ietf")
+
+
+class pybindRESTJSONEncoder(pybindJSONEncoder):
+  @staticmethod
+  def generate_element(obj, parent_namespace=None, flt=False):
+    """
+      Convert a pyangbind class to a format which encodes to the REST JSON
+      specification, rather than the default .get() format, which does not
+      match this specification.
+
+      The implementation is custom.
+    """
+    generated_by = getattr(obj, "_pybind_generated_by", None)
+    if generated_by == "YANGListType":
+      return [pybindRESTJSONEncoder.generate_element(i, flt=flt) for i in
+                                                            obj.itervalues()]
+    d = OrderedDict()
+
+    # Instead of using obj._pyangbind_elements to get yang elements,
+    # Using __slots__ from obj._base_type to maintain leaf order.
+    elements = []
+
+    if hasattr(obj, '_base_type') and hasattr(obj._base_type, '__slots__'):
+        elements = [x.lstrip('_') for x in obj._base_type.__slots__ if '__' in x]
+    else:
+        elements = obj._pyangbind_elements
+
+    for element_name in elements:
+      element = getattr(obj, element_name, None)
+      yang_name = getattr(element, "yang_name", None)
+      yname = yang_name() if yang_name is not None else element_name
+
+      generated_by = getattr(element, "_pybind_generated_by", None)
+
+      if generated_by == "container":
+        d[yname] = pybindRESTJSONEncoder.generate_element(element,
+                      parent_namespace=element._namespace, flt=flt)
+        if not len(d[yname]):
+          del d[yname]
+      elif generated_by == "YANGListType":
+        d[yname] = [pybindRESTJSONEncoder.generate_element(i,
+                      parent_namespace=element._namespace, flt=flt)
+                        for i in element._members.itervalues()]
+        if not len(d[yname]):
+          del d[yname]
+      else:
+        if flt and element._changed():
+          d[yname] = element
+        elif not flt:
+          d[yname] = element
+    return d
+
+
+  def encode(self, obj):
+    return json.JSONEncoder.encode(self,
+        self._preprocess_element(obj, mode="rest"))
+
+  def default(self, obj, mode="rest"):
+    return pybindJSONEncoder().default(obj, mode="rest")

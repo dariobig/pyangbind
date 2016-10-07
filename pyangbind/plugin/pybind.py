@@ -634,7 +634,7 @@ def build_typedefs(ctx, defnd):
     class_map[type_name.split(":")[1]] = class_map[type_name]
 
 def get_children(ctx, fd, i_children, module, parent, path=str(),
-                 parent_cfg=True, choice=False, register_paths=True):
+                 parent_cfg=True, choice=False, register_paths=True, rest_path=str()):
 
   # Iterative function that is called for all elements that have childen
   # data nodes in the tree. This function resolves those nodes into the
@@ -716,13 +716,13 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
         for case_ch in choice_ch.i_children:
           elements += get_element(ctx, fd, case_ch, module, parent,
             path + "/" + case_ch.arg, parent_cfg=parent_cfg,
-            choice=(ch.arg, choice_ch.arg), register_paths=register_paths)
+            choice=(ch.arg, choice_ch.arg), register_paths=register_paths, rest_path=rest_path + "/" + case_ch.arg)
           if ctx.opts.split_class_dir:
             if hasattr(case_ch, "i_children") and len(case_ch.i_children):
               import_req.append(case_ch.arg)
     else:
       elements += get_element(ctx, fd, ch, module, parent, path + "/" + ch.arg,
-        parent_cfg=parent_cfg, choice=choice, register_paths=register_paths)
+        parent_cfg=parent_cfg, choice=choice, register_paths=register_paths, rest_path=rest_path + "/" + ch.arg)
 
       if ctx.opts.split_class_dir:
         if hasattr(ch, "i_children") and len(ch.i_children):
@@ -1027,6 +1027,17 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
       return self._parent._path()+[self._yang_name]
     else:
       return %s\n""" % path.split("/")[1:])
+
+    # A generic method to provide a rest_path() method on each container, that gives
+    # a path in the form of a list that describes the nodes in the hierarchy for rest uri.
+    nfd.write("""
+  def _rest_path(self):
+    if hasattr(self, "_supplied_register_path"):
+      return [self._supplied_register_path]
+    if hasattr(self, "_parent"):
+      return self._parent._rest_path()+[self._yang_name]
+    else:
+      return %s\n""" % rest_path.split("/")[1:])
     node = {}
 
     # For each element, write out a getter and setter method - with the doc
@@ -1315,7 +1326,7 @@ def find_absolute_default_type(default_type, default_value, elemname):
 
 
 def get_element(ctx, fd, element, module, parent, path,
-                  parent_cfg=True, choice=False, register_paths=True):
+                  parent_cfg=True, choice=False, register_paths=True, rest_path=str()):
   # Handle mapping of an invidual element within the model. This function
   # produces a dictionary that can then be mapped into the relevant code that
   # dynamically generates a class.
@@ -1386,8 +1397,16 @@ def get_element(ctx, fd, element, module, parent, path,
       if has_presence is False and len(chs) == 0:
         return []
 
+      if extensions is not None:
+        if "tailf-common" in extensions:
+          for key in extensions["tailf-common"]:
+            if key == 'cli-drop-node-name':
+              rest_path = rest_path.rpartition("/")[0]
+            elif key == 'alt-name':
+              rest_path = rest_path.rpartition("/")[0] + '/' + extensions["tailf-common"][key]
+
       get_children(ctx, fd, chs, module, element, npath, parent_cfg=parent_cfg,
-                   choice=choice, register_paths=register_paths)
+                   choice=choice, register_paths=register_paths, rest_path=rest_path)
 
       elemdict = {
           "name": safe_name(element.arg), "origtype": element.keyword,

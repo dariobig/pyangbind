@@ -19,8 +19,10 @@ limitations under the License.
 """
 from .serialise import pybindJSONEncoder, pybindJSONDecoder, pybindJSONIOError
 from .serialise import pybindIETFJSONEncoder
+from .serialise import pybindRESTJSONEncoder
 import json
 import copy
+from collections import OrderedDict
 
 
 def remove_path(tree, path):
@@ -104,6 +106,8 @@ def dumps(obj, indent=4, filter=True, skip_subtrees=[], select=False,
     raise AttributeError('the subtrees to be skipped should be a list')
   if mode == 'ietf':
     tree = pybindIETFJSONEncoder.generate_element(obj, flt=filter)
+  elif mode == 'rest':
+    tree = pybindRESTJSONEncoder.generate_element(obj, flt=filter)
   else:
     tree = obj.get(filter=filter)
   for p in skip_subtrees:
@@ -152,6 +156,8 @@ def dumps(obj, indent=4, filter=True, skip_subtrees=[], select=False,
 
   if mode == "ietf":
     cls = pybindIETFJSONEncoder
+  elif mode == "rest":
+    cls = pybindRESTJSONEncoder
   else:
     cls = pybindJSONEncoder
 
