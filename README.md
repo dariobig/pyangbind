@@ -28,7 +28,7 @@ Development of **PyangBind** has been motivated by consuming the  [OpenConfig](h
 **PyangBind** is distributed through [PyPI](http://pypi.python.org), it can be installed by simply running:
 
 ```
-$ pip install pyangbind
+$ pip install pyangbind-brcd
 ```
 
 The `pyangbind` module installs both the Pyang plugin (`pyangbind.plugin.*`), as well as a set of library modules (`pyangbind.lib.*`) that are used to provide the Python representation of YANG types.
