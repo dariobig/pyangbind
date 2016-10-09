@@ -13,7 +13,7 @@ with open(path.join(thisdir, "README.rst"), encoding='utf-8') as readme:
   long_description = readme.read()
 
 setup(
-    name='pyangbind',
+    name='pyangbind-brcd',
 
     # PyangBind uses the same versioning approach as OpenConfig - see
     # http://www.openconfig.net/file-cabinet/Semantic_Versioning_for_OpenConfig.pdf?attredirects=0&d=1
@@ -25,7 +25,7 @@ setup(
                 " model.",
     long_description=long_description,
 
-    url="https://github.com/robshakir/pyangbind",
+    url="https://github.com/StackStorm/pyangbind",
 
     author="Rob Shakir",
     author_email="rjs@rob.sh",
