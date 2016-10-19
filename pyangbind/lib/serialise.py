@@ -532,6 +532,29 @@ class pybindIETFJSONEncoder(pybindJSONEncoder):
 
 
 class pybindRESTJSONEncoder(pybindJSONEncoder):
+  def _preprocess_element(self, d, mode="rest"):
+    nd = {}
+    if isinstance(d, OrderedDict) or isinstance(d, dict):
+        index = 0
+        for k in d:
+            if isinstance(d[k], dict) or isinstance(d[k], OrderedDict):
+                nd[k] = self._preprocess_element(d[k], mode=mode)
+            else:
+                nd[k] = self.default(d[k], mode=mode)
+            # if we wanted to do this as per draft-ietf-netmod-yang-metadata
+            # then the encoding is like this
+            # if not "@%s" % k in nd:
+            #  nd["@%s" % k] = {}
+            #  nd["@%s" % k]['order'] = index
+            # this has the downside that iterating over the dict gives you
+            # some elements that do not really exist - there is a need to
+            # exclude all elements that begin with "@"
+            index += 1
+    else:
+        nd = d
+    return nd
+
+
   @staticmethod
   def generate_element(obj, parent_namespace=None, flt=False):
     """
@@ -583,7 +606,7 @@ class pybindRESTJSONEncoder(pybindJSONEncoder):
 
 
   def encode(self, obj):
-    return json.JSONEncoder.encode(self,
+    return json.JSONEncoder.encode(self, 
         self._preprocess_element(obj, mode="rest"))
 
   def default(self, obj, mode="rest"):

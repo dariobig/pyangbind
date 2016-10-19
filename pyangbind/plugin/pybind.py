@@ -712,7 +712,7 @@ def find_definitions(defn, ctx, module, prefix):
 
 
 def get_children(ctx, fd, i_children, module, parent, path=str(),
-                 parent_cfg=True, choice=False, register_paths=True, rest_path=str()):
+                 parent_cfg=True, choice=False, register_paths=True, rest_path=str(), rest_name=str()):
 
   # Iterative function that is called for all elements that have childen
   # data nodes in the tree. This function resolves those nodes into the
@@ -870,7 +870,7 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
     # that was not in the model.
     elements_str = "_pyangbind_elements = {"
     slots_str = "  __slots__ = ('_pybind_generated_by', '_path_helper',"
-    slots_str += " '_yang_name', '_extmethods', "
+    slots_str += " '_yang_name', '_rest_name', '_extmethods', "
     for i in elements:
       slots_str += "'__%s'," % i["name"]
       elements_str += "'%s': %s, " % (i["name"], i["name"])
@@ -881,6 +881,7 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
     # not allowed in python as identifiers, but we need the real-name when
     # creating instance documents (e.g., peer-group is not valid due to '-').
     nfd.write("  _yang_name = '%s'\n" % (parent.arg))
+    nfd.write("  _rest_name = '%s'\n" % (rest_name))
 
     choices = {}
     choice_attrs = []
@@ -925,8 +926,8 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
         class_str["arg"] = "base=YANGListType("
         class_str["arg"] += "%s,%s" % ("\"%s\"" % i["key"] if i["key"]
                                                   else False, i["type"])
-        class_str["arg"] += ", yang_name=\"%s\", parent=self" \
-            % (i["yang_name"])
+        class_str["arg"] += ", yang_name=\"%s\", rest_name=\"%s\", parent=self" \
+            % (i["yang_name"], i["rest_name"])
         class_str["arg"] += ", is_container='list', user_ordered=%s" \
                                                   % i["user_ordered"]
         class_str["arg"] += ", path_helper=self._path_helper"
@@ -1004,6 +1005,7 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
         class_str["arg"] += ", is_leaf=True"
       if class_str["arg"]:
         class_str["arg"] += ", yang_name=\"%s\"" % i["yang_name"]
+        class_str["arg"] += ", rest_name=\"%s\"" % i["rest_name"]
         class_str["arg"] += ", parent=self"
         if i["choice"]:
           class_str["arg"] += ", choice=%s" % repr(i["choice"])
@@ -1109,10 +1111,11 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
     # a path in the form of a list that describes the nodes in the hierarchy for rest uri.
     nfd.write("""
   def _rest_path(self):
-    if hasattr(self, "_supplied_register_path"):
-      return [self._supplied_register_path]
     if hasattr(self, "_parent"):
-      return self._parent._rest_path()+[self._yang_name]
+      if self._rest_name:
+        return self._parent._rest_path()+[self._rest_name]
+      else:
+        return self._parent._rest_path()
     else:
       return %s\n""" % rest_path.split("/")[1:])
     node = {}
@@ -1425,6 +1428,10 @@ def get_element(ctx, fd, element, module, parent, path,
   default = False
   has_children = False
   create_list = False
+  rest_name = str()
+
+  if rest_path:
+    rest_name = rest_path.split('/')[-1]
 
   elemdescr = element.search_one('description')
   if elemdescr is None:
@@ -1443,6 +1450,15 @@ def get_element(ctx, fd, element, module, parent, path,
         if not ext.keyword[0] in extensions:
           extensions[ext.keyword[0]] = {}
         extensions[ext.keyword[0]][ext.keyword[1]] = ext.arg
+
+  if extensions is not None:
+    if "tailf-common" in extensions:
+      if'cli-drop-node-name' in extensions["tailf-common"]:
+        rest_path = rest_path.rpartition("/")[0]
+        rest_name = ''
+      elif 'alt-name' in extensions["tailf-common"]:
+        rest_path = rest_path.rpartition("/")[0] + '/' + extensions["tailf-common"]['alt-name']
+        rest_name = extensions["tailf-common"]['alt-name']
 
   # If the element has an i_children attribute then this is a container, list
   # leaf-list or choice. Alternatively, it can be the 'input' or 'output'
@@ -1471,16 +1487,8 @@ def get_element(ctx, fd, element, module, parent, path,
       if has_presence is False and len(chs) == 0:
         return []
 
-      if extensions is not None:
-        if "tailf-common" in extensions:
-          for key in extensions["tailf-common"]:
-            if key == 'cli-drop-node-name':
-              rest_path = rest_path.rpartition("/")[0]
-            elif key == 'alt-name':
-              rest_path = rest_path.rpartition("/")[0] + '/' + extensions["tailf-common"][key]
-
       get_children(ctx, fd, chs, module, element, npath, parent_cfg=parent_cfg,
-                   choice=choice, register_paths=register_paths, rest_path=rest_path)
+                   choice=choice, register_paths=register_paths, rest_path=rest_path, rest_name=rest_name)
 
       elemdict = {
           "name": safe_name(element.arg), "origtype": element.keyword,
@@ -1488,6 +1496,7 @@ def get_element(ctx, fd, element, module, parent, path,
           "path": safe_name(npath), "config": True,
           "description": elemdescr,
           "yang_name": element.arg,
+          "rest_name": rest_name,
           "choice": choice,
           "register_paths": register_paths,
           "namespace": namespace,
@@ -1701,6 +1710,7 @@ def get_element(ctx, fd, element, module, parent, path,
         "config": elemconfig, "defaulttype": default_type,
         "quote_arg": quote_arg,
         "description": elemdescr, "yang_name": element.arg,
+        "rest_name": rest_name,
         "choice": choice,
         "register_paths": register_paths,
         "namespace": namespace,

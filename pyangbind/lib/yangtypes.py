@@ -618,7 +618,7 @@ def YANGListType(*args, **kwargs):
           if keydict is not None:
             keys = self._keyval.split(" ")
             path_keystring = "["
-            path_uristring = "/"
+            path_uristring = ""
             for kv in keys:
               kv_obj = getattr(tmp, kv)
               path_keystring += "%s='%s' " % (kv_obj.yang_name(), keydict[kv])
@@ -634,8 +634,8 @@ def YANGListType(*args, **kwargs):
                                path_helper=path_helper,
                                register_path=(self._parent._path() +
                                 [self._yang_name + path_keystring]),
-                               register_uri=(self._parent._rest_path() +
-                                [self._yang_name + path_uristring]),
+                               register_uri=(self._rest_path() +
+                                [path_uristring]),
                                extmethods=self._parent._extmethods,
                                extensions=extensions)
           else:
@@ -647,8 +647,8 @@ def YANGListType(*args, **kwargs):
                                 path_helper=path_helper,
                                 register_path=(self._parent._path() +
                                 [self._yang_name + path_keystring]),
-                                register_uri=(self._parent._rest_path() +
-                                [self._yang_name + path_uristring]),
+                                register_uri=(self._rest_path() +
+                                [path_uristring]),
                                 extmethods=self._parent._extmethods,
                                 load=True,
                                 extensions=extensions)
@@ -867,6 +867,7 @@ def YANGDynClass(*args, **kwargs):
   base_type = kwargs.pop("base", False)
   default = kwargs.pop("default", False)
   yang_name = kwargs.pop("yang_name", False)
+  rest_name = kwargs.pop("rest_name", False)
   parent_instance = kwargs.pop("parent", False)
   choice_member = kwargs.pop("choice", False)
   is_container = kwargs.pop("is_container", False)
@@ -909,7 +910,7 @@ def YANGDynClass(*args, **kwargs):
       # otherwise, hop, skip and jump with the last candidate
       base_type = candidate_type
 
-  clsslots = ['_default', '_mchanged', '_yang_name', '_choice', '_parent',
+  clsslots = ['_default', '_mchanged', '_yang_name', '_rest_name', '_choice', '_parent',
                  '_supplied_register_path', '_supplied_register_uri', '_path_helper', '_base_type',
                  '_is_leaf', '_is_container', '_extensionsd',
                  '_pybind_base_class', '_extmethods', '_is_keyval',
@@ -953,6 +954,7 @@ def YANGDynClass(*args, **kwargs):
       self._default = False
       self._mchanged = False
       self._yang_name = yang_name
+      self._rest_name = rest_name
       self._parent = parent_instance
       self._choice = choice_member
       self._path_helper = path_helper
@@ -1038,7 +1040,13 @@ def YANGDynClass(*args, **kwargs):
       return "/" + "/".join(self._register_uri())
 
     def _rest_uri_for_post(self):
-      return "/" + "/".join(self._register_uri()[:-1])
+      if hasattr(self, '_parent'):
+        if hasattr(self._parent, '_register_uri'):
+          return "/" + "/".join(self._parent._register_uri())
+        else:
+          return "/" + "/".join(self._register_uri()[:-1])
+      else:
+        return "/" + "/".join(self._register_uri()[:-1])
 
     def __str__(self):
       return super(YANGBaseClass, self).__str__()
@@ -1075,6 +1083,9 @@ def YANGDynClass(*args, **kwargs):
 
     def yang_name(self):
       return self._yang_name
+
+    def rest_name(self):
+      return self._rest_name
 
     def default(self):
       return self._default
@@ -1130,20 +1141,10 @@ def YANGDynClass(*args, **kwargs):
       if self._supplied_register_uri is not None:
         return self._supplied_register_uri
       if self._parent is not None:
-        if self._extensionsd is not None:
-          if 'tailf-common' in extensions:
-            for key in self._extensionsd['tailf-common']:
-              if key == 'cli-drop-node-name':
-                #print("droping node name: " + self._yang_name)
-                return self._parent._rest_path()
-              elif key == 'alt-name':
-                #print("changing name from " + self._yang_name + " to " + self._extensionsd["tailf-common"][key])
-                return self._parent._rest_path() + [self._extensionsd['tailf-common'][key]]
-            return self._parent._rest_path() + [self._yang_name]
-          else:
-            return self._parent._rest_path() + [self._yang_name]
+        if self._rest_name:
+          return self._parent._rest_path() + [self._rest_name]
         else:
-          return self._parent._rest_path() + [self._yang_name]
+          return self._parent._rest_path()
       else:
         return []
 
