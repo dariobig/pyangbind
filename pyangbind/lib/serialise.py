@@ -582,11 +582,15 @@ class pybindRESTJSONEncoder(pybindJSONEncoder):
     for element_name in elements:
       element = getattr(obj, element_name, None)
       yang_name = getattr(element, "yang_name", None)
+      rest_name = getattr(element, "rest_name", None)
       yname = yang_name() if yang_name is not None else element_name
+      rname = rest_name() if rest_name is not None else element_name
+
+      yname = rname if rname != '' else yname
 
       generated_by = getattr(element, "_pybind_generated_by", None)
 
-      if generated_by == "container":
+      if generated_by == "container" and rname:
         d[yname] = pybindRESTJSONEncoder.generate_element(element,
                       parent_namespace=element._namespace, flt=flt)
         if not len(d[yname]):
