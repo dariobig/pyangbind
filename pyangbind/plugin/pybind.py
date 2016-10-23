@@ -1040,14 +1040,14 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
   def __init__(self, *args, **kwargs):\n""")
     if ctx.opts.use_xpathhelper:
       nfd.write("""
-    helper = kwargs.pop("path_helper", None)
-    if helper is False:
+    path_helper_ = kwargs.pop("path_helper", None)
+    if path_helper_ is False:
       self._path_helper = False
-    elif helper is not None and isinstance(helper, xpathhelper.YANGPathHelper):
-      self._path_helper = helper
+    elif path_helper_ is not None and isinstance(path_helper_, xpathhelper.YANGPathHelper):
+      self._path_helper = path_helper_
     elif hasattr(self, "_parent"):
-      helper = getattr(self._parent, "_path_helper", False)
-      self._path_helper = helper
+      path_helper_ = getattr(self._parent, "_path_helper", False)
+      self._path_helper = path_helper_
     else:
       self._path_helper = False\n""")
     else:
