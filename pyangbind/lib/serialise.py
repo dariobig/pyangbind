@@ -603,16 +603,16 @@ class pybindRESTJSONEncoder(pybindJSONEncoder):
           del d[yname]
       else:
         if flt and element._changed():
-          if element == True:
+          if str(element) == 'True':
             d[yname] = ''
-          elif element == False:
+          elif str(element) == 'False':
             pass
           else:
             d[yname] = element
         elif not flt:
-          if element == True:
+          if str(element) == 'True':
             d[yname] = ''
-          elif element == False:
+          elif str(element) == 'False':
             pass
           else:
             d[yname] = element
