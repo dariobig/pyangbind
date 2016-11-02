@@ -604,14 +604,14 @@ class pybindRESTJSONEncoder(pybindJSONEncoder):
       else:
         if flt and element._changed():
           if str(element) == 'True':
-            d[yname] = ''
+            d[yname] = ' '
           elif str(element) == 'False':
             pass
           else:
             d[yname] = element
         elif not flt:
           if str(element) == 'True':
-            d[yname] = ''
+            d[yname] = ' '
           elif str(element) == 'False':
             pass
           else:
