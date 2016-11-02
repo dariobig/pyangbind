@@ -533,7 +533,7 @@ class pybindIETFJSONEncoder(pybindJSONEncoder):
 
 class pybindRESTJSONEncoder(pybindJSONEncoder):
   def _preprocess_element(self, d, mode="rest"):
-    nd = {}
+    nd = OrderedDict()
     if isinstance(d, OrderedDict) or isinstance(d, dict):
         index = 0
         for k in d:
