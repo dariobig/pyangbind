@@ -613,19 +613,36 @@ def YANGListType(*args, **kwargs):
             keydict = {self._keyval: k}
             kv_obj = getattr(tmp, self._keyval)
             path_keystring = "[%s='%s']" % (kv_obj.yang_name(), k)
-            path_uristring = "/%s" % (k)
+
+            if isinstance(k, (str, unicode)):
+                if '/' in k:
+                    path_uristring = "/%%22%s%%22" % (k)
+                else:
+                    path_uristring = "/%s" % (k)
 
           if keydict is not None:
             keys = self._keyval.split(" ")
             path_keystring = "["
             path_uristring = ""
+            found_slash = False
+
             for kv in keys:
               kv_obj = getattr(tmp, kv)
               path_keystring += "%s='%s' " % (kv_obj.yang_name(), keydict[kv])
-              path_uristring += "%s " % (keydict[kv])
+            
+              if isinstance(keydict[kv], (str, unicode)):
+                if '/' in keydict[kv]:
+                    found_slash = True
+              
             path_keystring = path_keystring[:-1]
             path_keystring += "]"
+
+            for i, kv in enumerate(keys):
+              path_uristring += "%s " % (keydict[kv])
             path_uristring = path_uristring[:-1]
+
+            if found_slash == True:
+              path_uristring = "%22" + path_uristring + "%22"
 
           if not update:
             tmp = YANGDynClass(base=self._contained_class, parent=parent,
