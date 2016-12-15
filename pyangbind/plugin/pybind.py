@@ -1234,7 +1234,7 @@ def build_elemtype(ctx, et, prefix=False):
     elif et.arg == "union":
       elemtype = []
       for uniontype in et.search('type'):
-        elemtype_s = copy.deepcopy(build_elemtype(ctx, uniontype))
+        elemtype_s = copy.deepcopy(build_elemtype(ctx, uniontype, prefix))
         elemtype_s[1]["yang_type"] = uniontype.arg
         elemtype.append(elemtype_s)
       cls = "union"
@@ -1282,24 +1282,32 @@ def build_elemtype(ctx, et, prefix=False):
       # class_map for the defined type, since these are not 'derived' types
       # at this point. In the case that we are referencing a type that is a
       # typedef, then this has been added to the class_map.
-      try:
-        elemtype = class_map[et.arg]
-      except KeyError:
-        passed = False
-        if prefix:
+      passed = False
+
+      if prefix:
+        try:
+          tmp_name = "%s:%s" % (prefix, et.arg)
+          elemtype = class_map[tmp_name]
+          passed = True
+        except:
           try:
-            tmp_name = "%s:%s" % (prefix, et.arg)
-            elemtype = class_map[tmp_name]
+            elemtype = class_map[et.arg]
             passed = True
-          except:
-            pass
-        if passed is False:
-          sys.stderr.write("FATAL: unmapped type (%s)\n" % (et.arg))
-          if DEBUG:
-            pp.pprint(class_map.keys())
-            pp.pprint(et.arg)
-            pp.pprint(prefix)
-          sys.exit(127)
+          except KeyError:
+            passed = False
+      else:
+        try:
+          elemtype = class_map[et.arg]
+          passed = True
+        except KeyError:
+          passed = False
+      if passed is False:
+        sys.stderr.write("FATAL: unmapped type (%s)\n" % (et.arg))
+        if DEBUG:
+          pp.pprint(class_map.keys())
+          pp.pprint(et.arg)
+          pp.pprint(prefix)
+        sys.exit(127)
     if isinstance(elemtype, list):
       cls = "leaf-union"
     elif "class_override" in elemtype:
@@ -1467,7 +1475,7 @@ def get_element(ctx, fd, element, module, parent, path,
     if element.keyword in ["leaf-list"]:
       create_list = True
     cls, elemtype = copy.deepcopy(build_elemtype(ctx,
-                        element.search_one('type')))
+                        element.search_one('type'), element_module.search_one('prefix').arg))
 
     # Determine what the default for the leaf should be where there are
     # multiple available.
