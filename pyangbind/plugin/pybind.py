@@ -918,8 +918,7 @@ def get_children(ctx, fd, i_children, module, parent, path=str(),
                                                         default_arg)
       if i["class"] == "container":
         class_str["arg"] += ", is_container='container'"
-        if ctx.opts.generate_presence:
-          class_str["arg"] += ", presence=%s" % i["presence"]
+        class_str["arg"] += ", presence=%s" % i["presence"]
       elif i["class"] == "list":
         class_str["arg"] += ", is_container='list'"
       elif i["class"] == "leaf-list":
