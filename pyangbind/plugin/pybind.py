@@ -1387,8 +1387,9 @@ def get_element(ctx, fd, element, module, parent, path,
   if extensions is not None:
     if "tailf-common" in extensions:
       if'cli-drop-node-name' in extensions["tailf-common"]:
-        rest_path = rest_path.rpartition("/")[0]
-        rest_name = ''
+        if "container" in element.keyword:
+            rest_path = rest_path.rpartition("/")[0]
+            rest_name = ''
       if 'alt-name' in extensions["tailf-common"]:
         rest_path = rest_path.rpartition("/")[0] + '/' + extensions["tailf-common"]['alt-name']
         rest_name = extensions["tailf-common"]['alt-name']
