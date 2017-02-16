@@ -638,8 +638,8 @@ def YANGListType(*args, **kwargs):
             path_keystring += "]"
 
             for i, kv in enumerate(keys):
-              path_uristring += "%s " % (keydict[kv])
-            path_uristring = path_uristring[:-1]
+              path_uristring += "%s%%2C" % (keydict[kv])
+            path_uristring = path_uristring[:-3]
 
             if found_slash == True:
               path_uristring = "%22" + path_uristring + "%22"
