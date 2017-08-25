@@ -545,6 +545,19 @@ def build_typedefs(ctx, defnd):
   if error_ids:
     raise TypeError("could not resolve typedefs %s" % error_ids)
 
+  # Process standard type typedefs first, followed by non-standard type typedefs
+  process_typedefs_ordered_standard = []
+  process_typedefs_ordered_non_standard = []
+  standard_types = class_map.keys()
+
+  for i_tuple in process_typedefs_ordered:
+    if i_tuple[1].search_one('type').arg in standard_types:
+      process_typedefs_ordered_standard.append(i_tuple)
+    else:
+      process_typedefs_ordered_non_standard.append(i_tuple)
+
+  process_typedefs_ordered = process_typedefs_ordered_standard + process_typedefs_ordered_non_standard
+
   # Process the types that we built above.
   for i_tuple in process_typedefs_ordered:
     item = i_tuple[1]
