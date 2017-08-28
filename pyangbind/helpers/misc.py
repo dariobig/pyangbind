@@ -19,7 +19,7 @@ limitations under the License.
 
 def module_import_prefixes(ctx):
   mod_ref_prefixes = {}
-  for mod in ctx.modules:
+  for mod in ctx.modules.copy():
     m = ctx.search_module(0, mod[0])
     for importstmt in m.search('import'):
       if not importstmt.arg in mod_ref_prefixes:
