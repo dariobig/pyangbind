@@ -1,7 +1,11 @@
 from setuptools import setup, find_packages
-from pip.req import parse_requirements
 from codecs import open
 from os import path
+
+try:
+    from pip._internal.req import parse_requirements
+except ImportError:
+    from pip.req import parse_requirements
 
 thisdir = path.abspath(path.dirname(__file__))
 pip_reqs = parse_requirements(path.join(thisdir, "requirements.txt"), session=False)
